@@ -84,3 +84,25 @@ const login = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+// ================ LOGOUT USER =================
+const logout = async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            await User.findByIdAndUpdate(decoded.id, {
+                status: "offline",
+                lastSeen: new Date(),
+            });
+        }
+
+        res.clearCookie("token");
+
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
