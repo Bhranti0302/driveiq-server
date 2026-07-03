@@ -44,6 +44,7 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
+// ============ LOGIN USER ============ //
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -84,7 +85,27 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
+// ============ LOGOUT USER ============ //
+const logout = asyncHandler(async (req, res) => {
+    // 1. Check if user is logged in
+    const token = req.cookies.token;
+  
+    if (!token) {
+        return res.status(401).json({
+            message: "Not logged in"
+        })
+    }
+    // 2. Clear cookie
+    res.clearCookie("token");
+
+    // 3. Send response
+    res.status(200).json({
+        message: "User logged out successfully"
+    })
+})
+
 module.exports = {
   register,
-  login,
+    login,
+    logout
 };
