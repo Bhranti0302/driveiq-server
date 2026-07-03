@@ -44,3 +44,7 @@ const register = asyncHandler(async (req, res) => {
         }
     })
 })
+
+module.exports = {
+    register
+}
