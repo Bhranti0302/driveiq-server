@@ -3,7 +3,7 @@ const User = require("../models/User");
 const asyncHandler = require("./../utils/asyncHandler");
 
 const protect = asyncHandler(async (req, res, next) => { 
-    const token;
+    let token;
 
     // 1. Get token from header or cookie
     if (req.cookies.token) {
