@@ -4,9 +4,10 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Please add a name"],
+      required: true,
       trim: true,
-      minlength: 3,
+      lowercase: true,
+      unique: true,
     },
 
     description: {
@@ -34,7 +35,7 @@ const productSchema = new mongoose.Schema(
     },
 
     images: {
-      type: [String], // multiple images
+      type: [String],
       default: [],
     },
 
@@ -51,24 +52,31 @@ const productSchema = new mongoose.Schema(
     },
 
     specifications: {
-      type: Object, // flexible JSON
+      type: mongoose.Schema.Types.Mixed, 
       default: {},
     },
 
     dealer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
 
     status: {
       type: String,
-      enum: ["active", "banned"],
-      default: "active",
+      enum: ["pending", "active", "rejected"],
+      default: "pending",
     },
   },
   {
     timestamps: true,
   },
+);
+
+// 🔥 Optional: Better unique index (case-insensitive)
+productSchema.index(
+  { name: 1 },
+  { unique: true, collation: { locale: "en", strength: 2 } },
 );
 
 module.exports = mongoose.model("Product", productSchema);
