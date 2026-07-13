@@ -11,8 +11,14 @@ const createProduct = asyncHandler(async (req, res) => {
     quantity,
     category,
     brand,
-    rating,
+    specifications,
   } = req.body;
+
+  if (!name || !price || !quantity) {
+    return res.status(400).json({
+      message: " Missing required fields",
+    });
+  }
 
   const product = await Product.create({
     name,
@@ -22,11 +28,16 @@ const createProduct = asyncHandler(async (req, res) => {
     quantity,
     category,
     brand,
-    rating,
+    specifications,
   });
 
   res.status(201).json({
     message: "Product created successfully",
     product,
   });
+  
 });
+
+module.exports = {
+  createProduct,
+};
