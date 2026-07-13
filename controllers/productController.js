@@ -38,6 +38,19 @@ const createProduct = asyncHandler(async (req, res) => {
   
 });
 
+// ================== Get all products ================== //
+const getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({ status: "active" })
+    .populate("dealer", "name email")
+    .sort({ createdAt: -1 });
+  
+  res.json({
+    count: products.length,
+    products
+  })
+});
+
 module.exports = {
   createProduct,
+  getAllProducts
 };
