@@ -30,13 +30,17 @@ const productSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       required: true,
+      default: 1,
     },
 
-    images: [String], // ✅ multiple images
+    images: {
+      type: [String], // multiple images
+      default: [],
+    },
 
     category: {
       type: String,
-      enum: ["car", "part"], // ✅ controlled
+      enum: ["car", "part"],
       required: true,
     },
 
@@ -46,33 +50,21 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
 
+    specifications: {
+      type: Object, // flexible JSON
+      default: {},
+    },
+
     dealer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // ✅ important
+      ref: "User",
     },
 
-    rating: {
-      type: Number,
-      default: 0,
+    status: {
+      type: String,
+      enum: ["active", "banned"],
+      default: "active",
     },
-
-    numReviews: {
-      type: Number,
-      default: 0,
-    },
-
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-
-    // 🔥 YOUR REQUIREMENT IMPLEMENTED HERE
-    specifications: [
-      {
-        key: String,
-        value: String,
-      },
-    ],
   },
   {
     timestamps: true,
