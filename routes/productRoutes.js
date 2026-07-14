@@ -8,6 +8,7 @@ const {
   getAllProducts,
   approveProduct,
   rejectProduct,
+  updateProduct
 } = require("../controllers/productController");
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.put("/:id/approve", protect, restrictTo("admin"), approveProduct);
 
 // 👑 Admin → Reject
 router.put("/:id/reject", protect, restrictTo("admin"), rejectProduct);
+
+// Dealer + Admin can update
+router.put("/:id", protect, restrictTo("admin", "dealer"), updateProduct);
 
 module.exports = router;
