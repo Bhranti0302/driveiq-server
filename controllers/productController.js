@@ -153,11 +153,39 @@ const updateProduct = asyncHandler(async (req, res) => {
   });
 })           
 
+// ================= Delete product ================== //
+const deleteProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id);
+
+  // ✅ Check if product exists
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  // ✅ Authorization
+  if (
+    req.user.role !== "admin" &&
+    product.dealer.toString() !== req.user._id.toString()
+  ) {
+    res.status(403);
+    throw new Error("Not authorized to delete this product");
+  }
+
+  // ✅ Delete product
+  await product.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Product deleted successfully",
+  });
+});
 
 module.exports = {
   createProduct,
   approveProduct,
   rejectProduct,
   getAllProducts,
-  updateProduct
+  updateProduct,
+  deleteProduct
 };
