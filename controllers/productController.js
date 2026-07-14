@@ -116,9 +116,48 @@ const getAllProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// ================ Update product ================ //
+const updateProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id)
+
+  // Checlk if product exists
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  // Authorization
+  if (
+    req.user.role !== "admin" &&
+    product.dealer.toString() !== req.user._id.toString()
+  ) {
+    return status(403).json({ message: "Unauthorized" })
+  }
+
+  // Safe update(only update if value  exists)
+  product.name = req.body.name || product.name;
+  product.description = req.body.description || product.description;
+  product.longDescription = req.body.longDescription || product.longDescription;
+  product.price = req.body.price || product.price;
+  product.quantity = req.body.quantity || product.quantity;
+  product.category = req.body.category || product.category;
+  product.brand = req.body.brand || product.brand;
+  product.specifications = req.body.specifications || product.specifications;
+
+  // Reset status
+  product.status = "pending";
+
+  const updatedProduct = await product.save();
+  res.json({
+    message: "Product updated successfully",
+    updatedProduct,
+  });
+})           
+
+
 module.exports = {
   createProduct,
   approveProduct,
   rejectProduct,
   getAllProducts,
+  updateProduct
 };
