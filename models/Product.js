@@ -73,7 +73,7 @@ const productSchema = new mongoose.Schema(
   },
 );
 
-// 🔥 Optional: Better unique index (case-insensitive)
+// Better unique index (case-insensitive)
 productSchema.index(
   { name: 1 },
   { unique: true, collation: { locale: "en", strength: 2 } },
