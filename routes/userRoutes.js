@@ -1,7 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-const { createDealer, updateUserProfile, deleteUserAccount, getAllDealers, getAllUsers, updateDealerByAdmin } = require("../controllers/userController");
+const {
+  createDealer,
+  updateUserProfile,
+  deleteUserAccount,
+  getAllDealers,
+  getAllUsers,
+  updateDealerByAdmin,
+  deleteDealerByAdmin,
+} = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { restrictTo } = require("../middlewares/roleMiddleware");
 
@@ -31,8 +39,11 @@ router.get("/dealers", protect, restrictTo("admin"), getAllDealers);
 // 🔥 Admin creates dealer
 router.post("/create-dealer", protect, restrictTo("admin"), createDealer);
 
-// Dealer By Admin
+// Update Dealer By Admin
 router.put("/:id", protect, restrictTo("admin"), updateDealerByAdmin);
+
+// Delete Dealer By Admin
+router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
 // ******************************************************//
 
