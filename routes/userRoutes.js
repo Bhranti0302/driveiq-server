@@ -8,7 +8,8 @@ const {
   getAllDealers,
   getAllUsers,
   updateDealerByAdmin,
-  deleteDealerByAdmin,
+    deleteDealerByAdmin,
+  updateOwnDealerProfile
 } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { restrictTo } = require("../middlewares/roleMiddleware");
@@ -29,7 +30,7 @@ router.delete("/delete-account", protect, deleteUserAccount);
 
 // ******************************************************//
 
-// Dealer
+// Dealer create, update, delete by admin
 
 // ******************************************************//
 
@@ -46,5 +47,12 @@ router.put("/:id", protect, restrictTo("admin"), updateDealerByAdmin);
 router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
 // ******************************************************//
+
+// logged User can update own dealer profile
+
+// ******************************************************//
+
+// Update Own Dealer Profile
+router.put("/profile", protect, updateOwnDealerProfile);
 
 module.exports = router;
