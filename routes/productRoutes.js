@@ -17,7 +17,7 @@ const router = express.Router();
 // 🏪 Dealer → Create product
 router.post("/", protect, restrictTo("dealer"), createProduct);
 
-// 👤 Logged users → View products
+// 👤 Logged users → Vi ew products
 router.get("/", protect, getAllProducts);
 
 // 👑 Admin → Approve
