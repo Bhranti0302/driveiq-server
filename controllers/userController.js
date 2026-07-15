@@ -167,6 +167,45 @@ const deleteDealerByAdmin = asyncHandler(async (req, res) => {
 })
 // ******************************************************//
 
+
+// Logged dealer can update and delete
+
+// ******************************************************//
+
+// =========== Update Own Dealer Profile =========== //
+const updateOwnDealerProfile = asyncHandler(async (req, res) => {
+  if (req.user.role !== "dealer") {
+    res.status(403);
+    throw new Error("Only dealers can update their profile");
+  }
+
+  const dealer = await User.findById(req.user._id);
+
+  if (!dealer) {
+    res.status(404);
+    throw new Error("Dealer not found");
+  }
+
+  // ✅ Update allowed fields only
+  dealer.name = req.body.name || dealer.name;
+  dealer.email = req.body.email || dealer.email;
+  dealer.phone = req.body.phone || dealer.phone;
+
+  const updatedDealer = await dealer.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Dealer profile updated successfully",
+    data: {
+      id: updatedDealer._id,
+      name: updatedDealer.name,
+      email: updatedDealer.email,
+      phone: updatedDealer.phone,
+      role: updatedDealer.role,
+    },
+  });
+})
+
 module.exports = {
   createDealer,
   updateUserProfile,
@@ -174,5 +213,6 @@ module.exports = {
   getAllUsers,
   getAllDealers,
   updateDealerByAdmin,
-  deleteDealerByAdmin
+  deleteDealerByAdmin,
+  updateOwnDealerProfile
 };
