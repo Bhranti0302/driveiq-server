@@ -57,8 +57,32 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteUserAccount = asyncHandler(async (req, res) => {
+  // ❗ Only normal users allowed
+  if (req.user.role !== "user") {
+    res.status(403);
+    throw new Error("Only users can delete their account");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // ✅ Delete user
+  await user.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "User account deleted successfully",
+  });
+ })
+
 
 module.exports = {
   createDealer,
-  updateUserProfile
+  updateUserProfile,
+  deleteUserAccount
 };
