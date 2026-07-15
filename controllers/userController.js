@@ -2,6 +2,27 @@ const asyncHandler = require("./../utils/asyncHandler");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
+// ================== Get All User ================== //
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: "user" }).select("-password");
+
+  res.status(200).json({
+    count: users.length,
+    users,
+  });
+})
+
+// ============== Get All Dealers ============== //
+const getAllDealers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: "dealer" }).select("-password");
+
+  res.status(200).json({
+    count: users.length,
+    users,
+  });
+})
+
+
 // ================== Create dealer ================== //
 const createDealer = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
@@ -84,5 +105,7 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
 module.exports = {
   createDealer,
   updateUserProfile,
-  deleteUserAccount
+  deleteUserAccount,
+  getAllUsers,
+  getAllDealers
 };
