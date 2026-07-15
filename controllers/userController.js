@@ -97,7 +97,7 @@ const getAllDealers = asyncHandler(async (req, res) => {
 // ******************************************************//
 
 
-// ================== Create dealer By Admin================== //
+// ================== Create dealer By Admin ================== //
 const createDealer = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
 
@@ -116,7 +116,7 @@ const createDealer = asyncHandler(async (req, res) => {
 });
 
 
-// ================ Update product ================ //
+// ================ Update Dealer By Admin ================ //
 const updateDealerByAdmin = asyncHandler(async (req, res) => {
   const dealer = await User.findById(req.params.id);
 
@@ -145,6 +145,26 @@ const updateDealerByAdmin = asyncHandler(async (req, res) => {
   });
 })
 
+// ================ Delete Dealer By Admin ================ //
+const deleteDealerByAdmin = asyncHandler(async (req, res) => {
+  const dealer = await User.findById(req.params.id);
+
+  if (!dealer || dealer.role !== "dealer") {
+    res.status(404);
+    throw new Error("Dealer not found");
+  }
+
+  // Delete all Products of dealer
+  await Product.deleteMany({ dealer: dealer._id });
+
+  // ✅ Delete dealer
+  await dealer.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Dealer deleted successfully",
+  });
+})
 // ******************************************************//
 
 module.exports = {
@@ -153,5 +173,6 @@ module.exports = {
   deleteUserAccount,
   getAllUsers,
   getAllDealers,
-  updateDealerByAdmin
+  updateDealerByAdmin,
+  deleteDealerByAdmin
 };
