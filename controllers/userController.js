@@ -1,5 +1,6 @@
 const asyncHandler = require("./../utils/asyncHandler");
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 // ================== Create dealer ================== //
 const createDealer = asyncHandler(async (req, res) => {
@@ -19,12 +20,16 @@ const createDealer = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = {
-  createDealer,
-};
+
 
 // ================ Update product ================ //
-exports.updateUser = asyncHandler(async (req, res) => {
+const updateUserProfile = asyncHandler(async (req, res) => {
+  // ❗ Only normal users allowed
+  if (req.user.role !== "user") {
+    res.status(403);
+    throw new Error("Only users can update their profile");
+  }
+
   const user = await User.findById(req.user._id);
 
   if (!user) {
@@ -32,26 +37,28 @@ exports.updateUser = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // ✅ Update fields safely
+  // ✅ Update allowed fields only
   user.name = req.body.name || user.name;
   user.email = req.body.email || user.email;
-
-  // ✅ Password update (if provided)
-  if (req.body.password) {
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(req.body.password, salt);
-  }
+  user.phone = req.body.phone || user.phone;
 
   const updatedUser = await user.save();
 
   res.status(200).json({
     success: true,
-    message: "User profile updated",
+    message: "User profile updated successfully",
     data: {
-      _id: updatedUser._id,
+      id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
+      phone: updatedUser.phone,
       role: updatedUser.role,
     },
   });
 });
+
+
+module.exports = {
+  createDealer,
+  updateUserProfile
+};
