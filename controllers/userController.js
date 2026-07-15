@@ -2,6 +2,10 @@ const asyncHandler = require("./../utils/asyncHandler");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
+// User
+
+// ******************************************************//
+
 // ================== Get All User ================== //
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find({ role: "user" }).select("-password");
@@ -11,37 +15,6 @@ const getAllUsers = asyncHandler(async (req, res) => {
     users,
   });
 })
-
-// ============== Get All Dealers ============== //
-const getAllDealers = asyncHandler(async (req, res) => {
-  const users = await User.find({ role: "dealer" }).select("-password");
-
-  res.status(200).json({
-    count: users.length,
-    users,
-  });
-})
-
-
-// ================== Create dealer ================== //
-const createDealer = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
-
-  const dealer = await User.create({
-    name,
-    email,
-    password,
-    phone,
-    role: "dealer", // 🔥 force dealer
-  });
-
-  res.status(201).json({
-    message: "Dealer created successfully",
-    dealer,
-  });
-});
-
-
 
 // ================ Update product ================ //
 const updateUserProfile = asyncHandler(async (req, res) => {
@@ -99,13 +72,86 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
     success: true,
     message: "User account deleted successfully",
   });
- })
+})
+ 
+// ******************************************************//
 
+// Dealer
+
+// ******************************************************//
+
+// ============== Get All Dealers ============== //
+const getAllDealers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: "dealer" }).select("-password");
+
+  res.status(200).json({
+    count: users.length,
+    users,
+  });
+})
+
+// ******************************************************//
+
+// Dealer create, update and delete by admin
+
+// ******************************************************//
+
+
+// ================== Create dealer By Admin================== //
+const createDealer = asyncHandler(async (req, res) => {
+  const { name, email, password, phone } = req.body;
+
+  const dealer = await User.create({
+    name,
+    email,
+    password,
+    phone,
+    role: "dealer", // 🔥 force dealer
+  });
+
+  res.status(201).json({
+    message: "Dealer created successfully",
+    dealer,
+  });
+});
+
+
+// ================ Update product ================ //
+const updateDealerByAdmin = asyncHandler(async (req, res) => {
+  const dealer = await User.findById(req.params.id);
+
+  if (!dealer || dealer.role !== "dealer") {
+    res.status(404);
+    throw new Error("Dealer not found");
+  }
+
+  // ✅ Update allowed fields only
+  dealer.name = req.body.name || dealer.name;
+  dealer.email = req.body.email || dealer.email;
+  dealer.phone = req.body.phone || dealer.phone;
+
+  const updatedDealer = await dealer.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Dealer updated successfully",
+    data: {
+      id: updatedDealer._id,
+      name: updatedDealer.name,
+      email: updatedDealer.email,
+      phone: updatedDealer.phone,
+      role: updatedDealer.role,
+    },
+  });
+})
+
+// ******************************************************//
 
 module.exports = {
   createDealer,
   updateUserProfile,
   deleteUserAccount,
   getAllUsers,
-  getAllDealers
+  getAllDealers,
+  updateDealerByAdmin
 };
