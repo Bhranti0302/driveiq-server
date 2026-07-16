@@ -186,10 +186,11 @@ const updateOwnDealerProfile = asyncHandler(async (req, res) => {
     throw new Error("Dealer not found");
   }
 
-  // ✅ Update allowed fields only
-  dealer.name = req.body.name || dealer.name;
-  dealer.email = req.body.email || dealer.email;
-  dealer.phone = req.body.phone || dealer.phone;
+  const { name, email, phone } = req.body || {};
+
+  if (name) dealer.name = name;
+  if (email) dealer.email = email;
+  if (phone) dealer.phone = phone;
 
   const updatedDealer = await dealer.save();
 
@@ -204,6 +205,31 @@ const updateOwnDealerProfile = asyncHandler(async (req, res) => {
       role: updatedDealer.role,
     },
   });
+});
+
+// =========== Delete Own Dealer Profile =========== //
+const deleteOwnDealerAccount = asyncHandler(async (req, res) => {
+  if (req.user.role !== "dealer") {
+    res.status(403);
+    throw new Error("Only dealers can delete their account");
+  }
+
+  const dealer = await User.findById(req.user._id);
+
+  if (!dealer) {
+    res.status(404);
+    throw new Error("Dealer not found");
+  }
+
+  // Delete all Products of dealer
+  await Product.deleteMany({ dealer: dealer._id });
+
+  await dealer.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Dealer account deleted successfully",
+  });
 })
 
 module.exports = {
@@ -214,5 +240,6 @@ module.exports = {
   getAllDealers,
   updateDealerByAdmin,
   deleteDealerByAdmin,
-  updateOwnDealerProfile
+  updateOwnDealerProfile,
+  deleteOwnDealerAccount
 };
