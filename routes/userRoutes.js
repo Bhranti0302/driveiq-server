@@ -49,7 +49,7 @@ router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
 // ******************************************************//
 
-// logged User can update own dealer profile
+// logged dealer can update own dealer profile
 
 // ******************************************************//
 
