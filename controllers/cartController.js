@@ -2,7 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
 
-// Add to Cart
+// =================== Add to Cart =================== //
 const addToCart = asyncHandler(async (req, res) => {
   if (req.user.role !== "user") {
     res.status(403);
@@ -54,6 +54,36 @@ const addToCart = asyncHandler(async (req, res) => {
   });
 });
 
+// =================== Get User Cart =================== //
+const getUserCart = asyncHandler(async (req, res) => {
+    if (req.user.role !== "user") {
+        res.status(403);
+        throw new Error("Only users can get their cart");
+    }
+
+    const cart = await Cart.findOne({ user: req.user._id })
+        .populate({
+            path: "items.product",
+            select: "name price quantity"
+        })
+    
+    if (!cart) {
+      return res.status(200).json({
+        success: true,
+        message: "Cart is empty",
+        cart: { items: [] },
+      });
+    }
+
+    res.status(200).json({
+        success: true,
+        count: cart.items.length,
+      message: "Cart fetched successfully",
+      cart,
+    });
+})
+
 module.exports = {
-  addToCart,
+    addToCart,
+    getUserCart
 };
