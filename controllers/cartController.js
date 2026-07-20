@@ -83,7 +83,64 @@ const getUserCart = asyncHandler(async (req, res) => {
     });
 })
 
+// ============== Update Cart Item Quantity ============= //
+const updateCartItem = asyncHandler(async (req, res) => { 
+    if (req.user.role !== "user") {
+        res.status(403);
+        throw new Error("Only users can update their cart");
+    }
+
+    const quantity = req.body?.quantity;
+    const { productId } = req.params;
+
+    if (quantity === undefined) {
+        res.status(400);
+        throw new Error("Quantity is required");
+    }
+
+    const cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart) {
+        res.status(404);
+        throw new Error("Cart not found");
+    }
+
+    const itemIndex = cart.items.findIndex(
+        (item) => item.product.toString() === productId)
+    
+    if (itemIndex === -1) {
+        res.status(404);
+        throw new Error("Product not found in cart");
+    }
+
+    const currentQuantity = cart.items[itemIndex].quantity;
+
+    // No changes check
+    if (currentQuantity === quantity) {
+        return res.status(200).json({
+            success: true,
+            message: "Cart updated successfully",
+            cart,
+        });
+    }
+    
+    if (quantity === 0) {
+        cart.items.splice(itemIndex, 1);
+    } else {
+        cart.items[itemIndex].quantity = quantity;
+    }
+
+    await cart.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Cart updated successfully",
+        cart,
+    });
+});
+
 module.exports = {
     addToCart,
-    getUserCart
+    getUserCart,
+    updateCartItem
 };
