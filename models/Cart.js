@@ -37,35 +37,29 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-cartSchema.pre("save", async function (next) {
-  try {
-    const productIds = this.items.map((item) => item.product);
+cartSchema.pre("save", async function () {
+  const productIds = this.items.map((item) => item.product);
 
-    const products = await Product.find({
-      _id: { $in: productIds },
-    }).select("price");
+  const products = await Product.find({
+    _id: { $in: productIds },
+  }).select("price");
 
-    const productMap = {};
+  const productMap = {};
 
-    products.forEach((p) => {
-      productMap[p._id.toString()] = p.price;
-    });
+  products.forEach((p) => {
+    productMap[p._id.toString()] = p.price;
+  });
 
-    let total = 0;
+  let total = 0;
 
-    this.items.forEach((item) => {
-      const price = productMap[item.product.toString()];
-      if (!price) return;
+  this.items.forEach((item) => {
+    const price = productMap[item.product.toString()];
+    if (!price) return;
 
-      total += price * item.quantity;
-    });
+    total += price * item.quantity;
+  });
 
-    this.cartTotal = total;
-
-    next();
-  } catch (error) {
-    next(error);
-  }
+  this.cartTotal = total;
 });
 
 module.exports = mongoose.model("Cart", cartSchema);
