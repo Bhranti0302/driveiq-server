@@ -20,13 +20,13 @@ const { restrictTo } = require("../middlewares/roleMiddleware");
 
 // ******************************************************//
 
-// Get All User
+// Role => Admin(can see all user) -> Get All User
 router.get("/users", protect, restrictTo("admin"), getAllUsers);
 
-// User updates profile
+// Role => User(can update own profile) -> User updates profile
 router.put("/profile", protect, updateUserProfile);
 
-// User deletes account
+// Role => User(can delete own account) -> User deletes account
 router.delete("/delete-account", protect, deleteUserAccount);
 
 // ******************************************************//
@@ -35,16 +35,16 @@ router.delete("/delete-account", protect, deleteUserAccount);
 
 // ******************************************************//
 
-// Get All Dealer
+// Role => Admin(can see all dealers) -> Get All Dealer
 router.get("/dealers", protect, restrictTo("admin"), getAllDealers);
 
-// 🔥 Admin creates dealer
+// Role => Admin(can create dealers) -> Create Dealer
 router.post("/create-dealer", protect, restrictTo("admin"), createDealer);
 
-// Update Dealer By Admin
+// Role => Admin(can update dealers) -> Update Dealer
 router.put("/:id", protect, restrictTo("admin"), updateDealerByAdmin);
 
-// Delete Dealer By Admin
+// Role => Admin(can delete dealers) -> Delete Dealer
 router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
 // ******************************************************//
@@ -53,10 +53,10 @@ router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
 // ******************************************************//
 
-// Update Own Dealer Profile
+// Role => Dealer(can update own profile) -> Dealer updates profile
 router.put("/dealer/profile", protect, updateOwnDealerProfile);
 
-// Delete Own Dealer Account
+// Role => Dealer(can delete own account) -> Dealer deletes account
 router.delete("/dealer/delete-account", protect, deleteOwnDealerAccount);
 
 module.exports = router;
