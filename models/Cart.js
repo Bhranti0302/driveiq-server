@@ -28,8 +28,44 @@ const cartSchema = new mongoose.Schema(
       unique: true, // one cart per user
     },
     items: [cartItemSchema],
+
+    cartTotal: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );
+
+cartSchema.pre("save", async function (next) {
+  try {
+    const productIds = this.items.map((item) => item.product);
+
+    const products = await Product.find({
+      _id: { $in: productIds },
+    }).select("price");
+
+    const productMap = {};
+
+    products.forEach((p) => {
+      productMap[p._id.toString()] = p.price;
+    });
+
+    let total = 0;
+
+    this.items.forEach((item) => {
+      const price = productMap[item.product.toString()];
+      if (!price) return;
+
+      total += price * item.quantity;
+    });
+
+    this.cartTotal = total;
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = mongoose.model("Cart", cartSchema);
