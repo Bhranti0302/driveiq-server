@@ -42,20 +42,6 @@ const userSchema = new mongoose.Schema(
       ref: "Product",
     },
 
-    // 🛒 Cart (Cars user is interested in buying / booking)
-    cart: [
-      {
-        car: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Car",
-        },
-        addedAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-
     role: {
       type: String,
       enum: ["user", "admin", "dealer"],
