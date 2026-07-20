@@ -16,44 +16,47 @@ const orderItemSchema = new mongoose.Schema({
 })
 
 // Main Order Schema
-const ordeSchema = new mongoose.Schema({
+const orderSchema = new mongoose.Schema(
+  {
     user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
 
     orderItems: [orderItemSchema],
-    
+
     totalPrice: {
-        type: Number,
-        required: true,
-        default: 0
+      type: Number,
+      required: true,
+      default: 0,
     },
-     
+
     status: {
-        type: String,
-        enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
-        default: "pending"
+      type: String,
+      enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+      default: "pending",
     },
 
     isPaid: {
-        type: Boolean,
-        default: false
+      type: Boolean,
+      default: false,
     },
 
     paidAt: {
-        type: Date
+      type: Date,
     },
 
     shippingAddress: {
-        address: String,
-        city: String,
-        postalCode: String,
-        country: String
+      address: String,
+      city: String,
+      postalCode: String,
+      country: String,
     },
-}, {
-    timestamps: true
-})
+  },
+  {
+    timestamps: true,
+  },
+);
 
 module.exports = mongoose.model("Order", orderSchema)
