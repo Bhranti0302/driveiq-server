@@ -139,8 +139,45 @@ const updateCartItem = asyncHandler(async (req, res) => {
     });
 });
 
+const removeCartItem = asyncHandler(asyncHandler(async (req, res) => {
+    if (req.user.role !== "user") {
+        res.status(403);
+        throw new Error("Only users can remove items from their cart");
+    }
+
+    const { productId } = req.params;
+
+    const cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart) {
+        res.status(404);
+        throw new Error("Cart not found");
+    }
+
+    const itemExists = cart.items.some(
+        (item) => item.product.toString() === productId)
+    
+    if (!itemExists) {
+        res.status(404);
+        throw new Error("Product not found in cart");
+    }
+
+    // Remove item
+    cart.items = cart.items.filter(
+        (item) => item.product.toString() !== productId)
+    
+    await cart.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Product removed from cart",
+        cart,
+    });
+}))
+
 module.exports = {
     addToCart,
     getUserCart,
-    updateCartItem
+    updateCartItem,
+    removeCartItem
 };
