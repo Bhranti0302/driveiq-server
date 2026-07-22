@@ -37,11 +37,6 @@ const userSchema = new mongoose.Schema(
       match: [/^[0-9]{10}$/, "Please add a valid phone number"],
     },
 
-    wishlist: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: "Product",
-    },
-
     role: {
       type: String,
       enum: ["user", "admin", "dealer"],

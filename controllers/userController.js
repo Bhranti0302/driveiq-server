@@ -1,5 +1,6 @@
 const asyncHandler = require("./../utils/asyncHandler");
 const User = require("../models/User");
+const Product = require("../models/Product");
 const bcrypt = require("bcryptjs");
 
 // User
