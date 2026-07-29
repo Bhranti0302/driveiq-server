@@ -2,6 +2,7 @@ const asyncHandler = require("./../utils/asyncHandler");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const bcrypt = require("bcryptjs");
+const cloudinary = require("../utils/cloudinary");
 
 // User
 
@@ -16,6 +17,33 @@ const getAllUsers = asyncHandler(async (req, res) => {
     users,
   });
 })
+
+// ================ Upload Profile Picture ================ //
+const uploadProfileImage = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!req.file) {
+    return res.status(400).json({ message: "No image uploaded" });
+  }
+
+  // 🔥 Delete old image if exists
+  if (user.profileImage?.public_id) {
+    await cloudinary.uploader.destroy(user.profileImage.public_id);
+  }
+
+  // Save new image
+  user.profileImage = {
+    url: req.file.path,
+    public_id: req.file.filename,
+  };
+
+  await user.save();
+
+  res.json({
+    message: "Profile image updated",
+    profileImage: user.profileImage,
+  });
+});
 
 // ================ Update product ================ //
 const updateUserProfile = asyncHandler(async (req, res) => {
