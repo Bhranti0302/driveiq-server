@@ -45,6 +45,23 @@ const uploadProfileImage = asyncHandler(async (req, res) => {
   });
 });
 
+// ================ Delete Profile Picture ================ //
+const deleteProfileImage = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._iid);
+
+  if (!user.profileImage?.public_id) {
+    return res.status(400).json({ message: "No image to delete" });
+  }
+
+  await cloudinary.uploader.destroy(user.profileImage.public_id)
+
+  user.profileImage = {};
+  await user.save();
+
+  res.json({
+    message: "Profile image deleted",
+  })
+})
 // ================ Update product ================ //
 const updateUserProfile = asyncHandler(async (req, res) => {
   // ❗ Only normal users allowed
