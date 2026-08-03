@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+// ================= CONTROLLERS ================= //
 const {
   createDealer,
   updateUserProfile,
@@ -14,73 +15,68 @@ const {
   uploadProfileImage,
   deleteProfileImage,
 } = require("../controllers/userController");
+
+// ================= MIDDLEWARES ================= //
 const { protect } = require("../middlewares/authMiddleware");
 const { restrictTo } = require("../middlewares/roleMiddleware");
-const upload = require("../middlewares/upload");
 
-// User
+// ================= FILE UPLOAD ================= //
+const { uploadUserImage } = require("../middlewares/upload");
 
-// ******************************************************//
+// ====================================================== //
+// ====================== USERS ========================== //
+// ====================================================== //
 
-// Role => Admin(can see all user) -> Get All User
+// Get all users (ADMIN ONLY)
 router.get("/users", protect, restrictTo("admin"), getAllUsers);
 
-// Role => User(can update own profile) -> User updates profile
+// Update logged-in user profile
 router.put("/profile", protect, updateUserProfile);
 
-// Role => User(can delete own account) -> User deletes account
+// Delete logged-in user account
 router.delete("/delete-account", protect, deleteUserAccount);
 
-// ******************************************************//
+// ====================================================== //
+// ====================== DEALERS (ADMIN) ================= //
+// ====================================================== //
 
-// Dealer create, update, delete by admin
-
-// ******************************************************//
-
-// Role => Admin(can see all dealers) -> Get All Dealer
+// Get all dealers
 router.get("/dealers", protect, restrictTo("admin"), getAllDealers);
 
-// Role => Admin(can create dealers) -> Create Dealer
+// Create dealer
 router.post("/create-dealer", protect, restrictTo("admin"), createDealer);
 
-// Role => Admin(can update dealers) -> Update Dealer
-router.put("/:id", protect, restrictTo("admin"), updateDealerByAdmin);
+// Update dealer by ID (ADMIN)
+router.put("/dealer/:id", protect, restrictTo("admin"), updateDealerByAdmin);
 
-// Role => Admin(can delete dealers) -> Delete Dealer
-router.delete("/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
+// Delete dealer by ID (ADMIN)
+router.delete("/dealer/:id", protect, restrictTo("admin"), deleteDealerByAdmin);
 
-// ******************************************************//
+// ====================================================== //
+// ================== DEALER (SELF) ====================== //
+// ====================================================== //
 
-// logged dealer can update own dealer profile
-
-// ******************************************************//
-
-// Role => Dealer(can update own profile) -> Dealer updates profile
+// Dealer updates own profile
 router.put("/dealer/profile", protect, updateOwnDealerProfile);
 
-// Role => Dealer(can delete own account) -> Dealer deletes account
+// Dealer deletes own account
 router.delete("/dealer/delete-account", protect, deleteOwnDealerAccount);
 
-// ******************************************************//
+// ====================================================== //
+// ================= PROFILE IMAGE ======================= //
+// ====================================================== //
 
-// upload profile image
-
-// ******************************************************//
-
-// PROFILE
-// Upload profile image
+// Upload / Replace profile image
 router.put(
   "/profile/image",
   protect,
-  upload.single("image"),
-  uploadProfileImage
+  uploadUserImage.single("image"),
+  uploadProfileImage,
 );
 
 // Delete profile image
-router.delete(
-  "/profile/image",
-  protect,
-  deleteProfileImage
-);
+router.delete("/profile/image", protect, deleteProfileImage);
+
+// ====================================================== //
 
 module.exports = router;
