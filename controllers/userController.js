@@ -16,7 +16,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
     count: users.length,
     users,
   });
-})
+});
 
 // ================ Upload Profile Picture ================ //
 const uploadProfileImage = asyncHandler(async (req, res) => {
@@ -47,21 +47,22 @@ const uploadProfileImage = asyncHandler(async (req, res) => {
 
 // ================ Delete Profile Picture ================ //
 const deleteProfileImage = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._iid);
+  const user = await User.findById(req.user._id);
 
   if (!user.profileImage?.public_id) {
     return res.status(400).json({ message: "No image to delete" });
   }
 
-  await cloudinary.uploader.destroy(user.profileImage.public_id)
+  await cloudinary.uploader.destroy(user.profileImage.public_id);
 
   user.profileImage = {};
   await user.save();
 
   res.json({
     message: "Profile image deleted",
-  })
-})
+  });
+});
+
 // ================ Update product ================ //
 const updateUserProfile = asyncHandler(async (req, res) => {
   // ❗ Only normal users allowed
@@ -118,8 +119,8 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
     success: true,
     message: "User account deleted successfully",
   });
-})
- 
+});
+
 // ******************************************************//
 
 // Dealer
@@ -134,14 +135,13 @@ const getAllDealers = asyncHandler(async (req, res) => {
     count: users.length,
     users,
   });
-})
+});
 
 // ******************************************************//
 
 // Dealer create, update and delete by admin
 
 // ******************************************************//
-
 
 // ================== Create dealer By Admin ================== //
 const createDealer = asyncHandler(async (req, res) => {
@@ -160,7 +160,6 @@ const createDealer = asyncHandler(async (req, res) => {
     dealer,
   });
 });
-
 
 // ================ Update Dealer By Admin ================ //
 const updateDealerByAdmin = asyncHandler(async (req, res) => {
@@ -189,7 +188,7 @@ const updateDealerByAdmin = asyncHandler(async (req, res) => {
       role: updatedDealer.role,
     },
   });
-})
+});
 
 // ================ Delete Dealer By Admin ================ //
 const deleteDealerByAdmin = asyncHandler(async (req, res) => {
@@ -210,9 +209,8 @@ const deleteDealerByAdmin = asyncHandler(async (req, res) => {
     success: true,
     message: "Dealer deleted successfully",
   });
-})
+});
 // ******************************************************//
-
 
 // Logged dealer can update and delete
 
@@ -276,7 +274,7 @@ const deleteOwnDealerAccount = asyncHandler(async (req, res) => {
     success: true,
     message: "Dealer account deleted successfully",
   });
-})
+});
 
 module.exports = {
   createDealer,
@@ -287,5 +285,7 @@ module.exports = {
   updateDealerByAdmin,
   deleteDealerByAdmin,
   updateOwnDealerProfile,
-  deleteOwnDealerAccount
+  deleteOwnDealerAccount,
+  uploadProfileImage,
+  deleteProfileImage,
 };
