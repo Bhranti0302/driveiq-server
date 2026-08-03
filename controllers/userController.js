@@ -18,52 +18,51 @@ const getAllUsers = asyncHandler(async (req, res) => {
   });
 });
 
-// ================ Upload Profile Picture ================ //
+// ================= UPLOAD IMAGE ================= //
 const uploadProfileImage = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-
   if (!req.file) {
     return res.status(400).json({ message: "No image uploaded" });
   }
 
-  // 🔥 Delete old image if exists
-  if (user.profileImage?.public_id) {
-    await cloudinary.uploader.destroy(user.profileImage.public_id);
+  // ✅ Delete old image
+  if (req.user.profileImage?.public_id) {
+    await cloudinary.uploader.destroy(req.user.profileImage.public_id);
   }
 
-  // Save new image
-  user.profileImage = {
+  req.user.profileImage = {
     url: req.file.path,
     public_id: req.file.filename,
   };
 
-  await user.save();
+  await req.user.save();
 
-  res.json({
-    message: "Profile image updated",
-    profileImage: user.profileImage,
+  res.status(200).json({
+    message: "Profile image uploaded",
+    profileImage: req.user.profileImage,
   });
 });
 
-// ================ Delete Profile Picture ================ //
+// ================= DELETE IMAGE ================= //
 const deleteProfileImage = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
-
-  if (!user.profileImage?.public_id) {
+  if (!req.user.profileImage?.public_id) {
     return res.status(400).json({ message: "No image to delete" });
   }
 
-  await cloudinary.uploader.destroy(user.profileImage.public_id);
+  await cloudinary.uploader.destroy(req.user.profileImage.public_id);
 
-  user.profileImage = {};
-  await user.save();
+  req.user.profileImage = {
+    url: "",
+    public_id: "",
+  };
 
-  res.json({
+  await req.user.save();
+
+  res.status(200).json({
     message: "Profile image deleted",
   });
 });
 
-// ================ Update product ================ //
+// ================ Update Own User Profile ================ //
 const updateUserProfile = asyncHandler(async (req, res) => {
   // ❗ Only normal users allowed
   if (req.user.role !== "user") {
@@ -98,8 +97,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// ================= Delete Own User Account ================= //
 const deleteUserAccount = asyncHandler(async (req, res) => {
-  // ❗ Only normal users allowed
   if (req.user.role !== "user") {
     res.status(403);
     throw new Error("Only users can delete their account");
@@ -112,7 +111,11 @@ const deleteUserAccount = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  // ✅ Delete user
+  // ✅ Delete image from Cloudinary
+  if (user.profileImage?.public_id) {
+    await cloudinary.uploader.destroy(user.profileImage.public_id);
+  }
+
   await user.deleteOne();
 
   res.status(200).json({
@@ -199,10 +202,30 @@ const deleteDealerByAdmin = asyncHandler(async (req, res) => {
     throw new Error("Dealer not found");
   }
 
-  // Delete all Products of dealer
+  // ================= DELETE ALL PRODUCT IMAGES ================= //
+  const products = await Product.find({ dealer: dealer._id });
+
+  const publicIds = [];
+
+  for (const product of products) {
+    if (product.images && product.images.length > 0) {
+      for (const img of product.images) {
+        if (img.public_id) {
+          publicIds.push(img.public_id);
+        }
+      }
+    }
+  }
+
+  // ✅ Bulk delete from Cloudinary (optimized)
+  if (publicIds.length > 0) {
+    await cloudinary.api.delete_resources(publicIds);
+  }
+
+  // ================= DELETE ALL PRODUCTS ================= //
   await Product.deleteMany({ dealer: dealer._id });
 
-  // ✅ Delete dealer
+  // ================= DELETE DEALER ================= //
   await dealer.deleteOne();
 
   res.status(200).json({
@@ -210,6 +233,7 @@ const deleteDealerByAdmin = asyncHandler(async (req, res) => {
     message: "Dealer deleted successfully",
   });
 });
+
 // ******************************************************//
 
 // Logged dealer can update and delete
@@ -265,9 +289,30 @@ const deleteOwnDealerAccount = asyncHandler(async (req, res) => {
     throw new Error("Dealer not found");
   }
 
-  // Delete all Products of dealer
+  // ================= DELETE ALL PRODUCT IMAGES ================= //
+  const products = await Product.find({ dealer: dealer._id });
+
+  const publicIds = [];
+
+  for (const product of products) {
+    if (product.images && product.images.length > 0) {
+      for (const img of product.images) {
+        if (img.public_id) {
+          publicIds.push(img.public_id);
+        }
+      }
+    }
+  }
+
+  // ✅ Bulk delete from Cloudinary
+  if (publicIds.length > 0) {
+    await cloudinary.api.delete_resources(publicIds);
+  }
+
+  // ================= DELETE ALL PRODUCTS ================= //
   await Product.deleteMany({ dealer: dealer._id });
 
+  // ================= DELETE DEALER ================= //
   await dealer.deleteOne();
 
   res.status(200).json({
