@@ -2,14 +2,33 @@ const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../utils/cloudinary");
 
-const storage = new CloudinaryStorage({
+// ================= USER PROFILE IMAGE ================= //
+
+const userStorage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "driveiq",
+    folder: "driveiq/users",
     allowed_formats: ["jpg", "png", "jpeg"],
   },
 });
 
-const upload = multer({ storage });
+const uploadUserImage = multer({ storage: userStorage });
 
-module.exports = upload;
+// ================= PRODUCT IMAGES ================= //
+
+const productStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "driveiq/products",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
+const uploadProductImages = multer({ storage: productStorage });
+
+// ================= EXPORT ================= //
+
+module.exports = {
+  uploadUserImage,
+  uploadProductImages,
+};
