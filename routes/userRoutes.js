@@ -10,11 +10,13 @@ const {
   updateDealerByAdmin,
   deleteDealerByAdmin,
   updateOwnDealerProfile,
-  deleteOwnDealerAccount
+  deleteOwnDealerAccount,
+  uploadProfileImage,
+  deleteProfileImage,
 } = require("../controllers/userController");
 const { protect } = require("../middlewares/authMiddleware");
 const { restrictTo } = require("../middlewares/roleMiddleware");
-
+const upload = require("../middlewares/upload");
 
 // User
 
@@ -58,5 +60,27 @@ router.put("/dealer/profile", protect, updateOwnDealerProfile);
 
 // Role => Dealer(can delete own account) -> Dealer deletes account
 router.delete("/dealer/delete-account", protect, deleteOwnDealerAccount);
+
+// ******************************************************//
+
+// upload profile image
+
+// ******************************************************//
+
+// PROFILE
+// Upload profile image
+router.put(
+  "/profile/image",
+  protect,
+  upload.single("image"),
+  uploadProfileImage
+);
+
+// Delete profile image
+router.delete(
+  "/profile/image",
+  protect,
+  deleteProfileImage
+);
 
 module.exports = router;
