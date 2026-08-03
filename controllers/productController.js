@@ -1,7 +1,9 @@
 const Product = require("../models/Product");
 const asyncHandler = require("../utils/asyncHandler");
+const cloudinary = require("../utils/cloudinary");
+const slugify = require("slugify");
 
-// ================== Create product ================== //
+// ================== CREATE PRODUCT ================== //
 const createProduct = asyncHandler(async (req, res) => {
   const {
     name,
@@ -14,25 +16,49 @@ const createProduct = asyncHandler(async (req, res) => {
     specifications,
   } = req.body;
 
-  if (!name || !price || !quantity) {
+  if (!name || !price || !quantity || !category || !brand) {
     return res.status(400).json({
       message: "Missing required fields",
     });
   }
 
-  // 🔥 Prevent duplicate
+  // ✅ Prevent duplicate (per dealer)
   const existing = await Product.findOne({
     name: name.trim().toLowerCase(),
+    dealer: req.user._id,
   });
 
   if (existing) {
     return res.status(400).json({
-      message: "Product already exists",
+      message: "You already created this product",
     });
   }
 
+  // ================= IMAGE HANDLING ================= //
+  let mainImage = { url: "", public_id: "" };
+  let images = [];
+
+  if (req.files) {
+    // main image
+    if (req.files.mainImage) {
+      mainImage = {
+        url: req.files.mainImage[0].path,
+        public_id: req.files.mainImage[0].filename,
+      };
+    }
+
+    // multiple images
+    if (req.files.images) {
+      images = req.files.images.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      }));
+    }
+  }
+
   const product = await Product.create({
-    name,
+    name: name.trim().toLowerCase(),
+    slug: slugify(name, { lower: true }),
     description,
     longDescription,
     price,
@@ -42,6 +68,8 @@ const createProduct = asyncHandler(async (req, res) => {
     specifications,
     dealer: req.user._id,
     status: "pending",
+    mainImage,
+    images,
   });
 
   res.status(201).json({
@@ -50,7 +78,7 @@ const createProduct = asyncHandler(async (req, res) => {
   });
 });
 
-// ================== Approve product ================== //
+// ================== APPROVE PRODUCT ================== //
 const approveProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
@@ -67,12 +95,10 @@ const approveProduct = asyncHandler(async (req, res) => {
   product.status = "active";
   await product.save();
 
-  res.status(200).json({
-    message: "Product approved successfully",
-  });
+  res.json({ message: "Product approved successfully" });
 });
 
-// ================== Reject product ================== //
+// ================== REJECT PRODUCT ================== //
 const rejectProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
@@ -80,30 +106,22 @@ const rejectProduct = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Product not found" });
   }
 
-  if (product.status === "rejected") {
-    return res.status(400).json({
-      message: "Product already rejected",
-    });
-  }
-
   product.status = "rejected";
   await product.save();
 
-  res.status(200).json({
-    message: "Product rejected successfully",
-  });
+  res.json({ message: "Product rejected successfully" });
 });
 
-// ================== Get all products ================== //
+// ================== GET ALL PRODUCTS ================== //
 const getAllProducts = asyncHandler(async (req, res) => {
   let filter = {};
 
   if (req.user.role === "admin") {
-    filter = {}; // all
+    filter = {};
   } else if (req.user.role === "dealer") {
-    filter = { dealer: req.user._id }; // own products
+    filter = { dealer: req.user._id };
   } else {
-    filter = { status: "active" }; // users
+    filter = { status: "active" };
   }
 
   const products = await Product.find(filter)
@@ -116,25 +134,38 @@ const getAllProducts = asyncHandler(async (req, res) => {
   });
 });
 
-// ================ Update product ================ //
+// ================== UPDATE PRODUCT ================== //
 const updateProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id)
+  const product = await Product.findById(req.params.id);
 
-  // Checlk if product exists
   if (!product) {
     return res.status(404).json({ message: "Product not found" });
   }
 
-  // Authorization
+  // ✅ Authorization
   if (
     req.user.role !== "admin" &&
     product.dealer.toString() !== req.user._id.toString()
   ) {
-    return status(403).json({ message: "Unauthorized" })
+    return res.status(403).json({ message: "Unauthorized" });
   }
 
-  // Safe update(only update if value  exists)
+  // ================= DELETE OLD IMAGES ================= //
+  if (req.files?.mainImage && product.mainImage?.public_id) {
+    await cloudinary.uploader.destroy(product.mainImage.public_id);
+  }
+
+  if (req.files?.images && product.images.length > 0) {
+    for (const img of product.images) {
+      if (img.public_id) {
+        await cloudinary.uploader.destroy(img.public_id);
+      }
+    }
+  }
+
+  // ================= UPDATE FIELDS ================= //
   product.name = req.body.name || product.name;
+  product.slug = slugify(product.name, { lower: true });
   product.description = req.body.description || product.description;
   product.longDescription = req.body.longDescription || product.longDescription;
   product.price = req.body.price || product.price;
@@ -143,24 +174,38 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.brand = req.body.brand || product.brand;
   product.specifications = req.body.specifications || product.specifications;
 
-  // Reset status
+  // ================= UPDATE IMAGES ================= //
+  if (req.files?.mainImage) {
+    product.mainImage = {
+      url: req.files.mainImage[0].path,
+      public_id: req.files.mainImage[0].filename,
+    };
+  }
+
+  if (req.files?.images) {
+    product.images = req.files.images.map((file) => ({
+      url: file.path,
+      public_id: file.filename,
+    }));
+  }
+
+  // 🔥 Reset status after update
   product.status = "pending";
 
   const updatedProduct = await product.save();
+
   res.json({
-    message: "Product updated successfully",
+    message: "Product updated & sent for re-approval",
     updatedProduct,
   });
-})           
+});
 
-// ================= Delete product ================== //
+// ================== DELETE PRODUCT ================== //
 const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
-  // ✅ Check if product exists
   if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
+    return res.status(404).json({ message: "Product not found" });
   }
 
   // ✅ Authorization
@@ -168,15 +213,23 @@ const deleteProduct = asyncHandler(async (req, res) => {
     req.user.role !== "admin" &&
     product.dealer.toString() !== req.user._id.toString()
   ) {
-    res.status(403);
-    throw new Error("Not authorized to delete this product");
+    return res.status(403).json({ message: "Unauthorized" });
   }
 
-  // ✅ Delete product
+  // ================= DELETE IMAGES ================= //
+  if (product.mainImage?.public_id) {
+    await cloudinary.uploader.destroy(product.mainImage.public_id);
+  }
+
+  for (const img of product.images) {
+    if (img.public_id) {
+      await cloudinary.uploader.destroy(img.public_id);
+    }
+  }
+
   await product.deleteOne();
 
-  res.status(200).json({
-    success: true,
+  res.json({
     message: "Product deleted successfully",
   });
 });
@@ -187,5 +240,5 @@ module.exports = {
   rejectProduct,
   getAllProducts,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 };
