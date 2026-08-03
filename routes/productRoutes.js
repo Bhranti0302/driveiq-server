@@ -9,27 +9,45 @@ const {
   approveProduct,
   rejectProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
 } = require("../controllers/productController");
+
+const { uploadProductImages } = require("../middlewares/upload");
 
 const router = express.Router();
 
-// Role => Dealer → Create product
-router.post("/", protect, restrictTo("dealer"), createProduct);
+// ================= CREATE PRODUCT ================= //
+router.post(
+  "/",
+  protect,
+  restrictTo("dealer"),
+  uploadProductImages.fields([
+    { name: "mainImage", maxCount: 1 },
+    { name: "images", maxCount: 5 },
+  ]),
+  createProduct,
+);
 
-//Logged users → View products as per role
+// ================= GET PRODUCTS ================= //
 router.get("/", protect, getAllProducts);
 
-// Admin → Approve product 
+// ================= ADMIN ACTIONS ================= //
 router.put("/:id/approve", protect, restrictTo("admin"), approveProduct);
-
-// 👑 Admin → Reject product
 router.put("/:id/reject", protect, restrictTo("admin"), rejectProduct);
 
-// Dealer + Admin can update product
-router.put("/:id", protect, restrictTo("admin", "dealer"), updateProduct);
+// ================= UPDATE PRODUCT ================= //
+router.put(
+  "/:id",
+  protect,
+  restrictTo("admin", "dealer"),
+  uploadProductImages.fields([
+    { name: "mainImage", maxCount: 1 },
+    { name: "images", maxCount: 5 },
+  ]),
+  updateProduct,
+);
 
-// Dealer + Admin can delete product
+// ================= DELETE PRODUCT ================= //
 router.delete("/:id", protect, restrictTo("admin", "dealer"), deleteProduct);
 
 module.exports = router;
