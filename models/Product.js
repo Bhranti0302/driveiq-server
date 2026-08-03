@@ -7,7 +7,6 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      unique: true,
     },
 
     description: {
@@ -26,34 +25,27 @@ const productSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: true,
+      min: 0,
     },
 
-    quantity: { // Available stock
+    quantity: {
       type: Number,
       required: true,
       default: 1,
+      min: 0,
     },
 
     mainImage: {
-      url:{
-        type: String,
-        default: ""},
-      public_id: {
-        type: String,
-        default: "",
-      },
+      url: { type: String, default: "" },
+      public_id: { type: String, default: "" },
     },
 
-    images: [{
-      url: {
-        type: String,
-        default: "",
+    images: [
+      {
+        url: { type: String, default: "" },
+        public_id: { type: String, default: "" },
       },
-      public_id: {
-        type: String,
-        default: "",
-      },
-    }],
+    ],
 
     category: {
       type: String,
@@ -68,7 +60,7 @@ const productSchema = new mongoose.Schema(
     },
 
     specifications: {
-      type: mongoose.Schema.Types.Mixed, 
+      type: mongoose.Schema.Types.Mixed,
       default: {},
     },
 
@@ -83,16 +75,26 @@ const productSchema = new mongoose.Schema(
       enum: ["pending", "active", "rejected"],
       default: "pending",
     },
+
+    slug: {
+      type: String,
+      lowercase: true,
+    },
   },
   {
     timestamps: true,
   },
 );
 
-// Better unique index (case-insensitive)
+// ✅ Unique per dealer (IMPORTANT FIX)
 productSchema.index(
-  { name: 1 },
+  { name: 1, dealer: 1 },
   { unique: true, collation: { locale: "en", strength: 2 } },
 );
+
+// ✅ Performance indexes
+productSchema.index({ dealer: 1 });
+productSchema.index({ category: 1 });
+productSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Product", productSchema);
