@@ -1,25 +1,11 @@
 const mongoose = require("mongoose");
 
-const productSchema = new mongoose.Schema(
+const variantSchema = new mongoose.Schema(
   {
-    name: {
+    color: {
       type: String,
       required: true,
       trim: true,
-      lowercase: true,
-    },
-
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    longDescription: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 1000,
     },
 
     price: {
@@ -28,24 +14,33 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
 
-    quantity: {
+    stock: {
       type: Number,
       required: true,
-      default: 1,
       min: 0,
     },
 
     mainImage: {
-      url: { type: String, default: "" },
-      public_id: { type: String, default: "" },
+      url: String,
+      public_id: String,
     },
 
     images: [
       {
-        url: { type: String, default: "" },
-        public_id: { type: String, default: "" },
+        url: String,
+        public_id: String,
       },
     ],
+  },
+  { _id: false },
+);
+
+const productSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true, lowercase: true },
+
+    description: { type: String, required: true },
+    longDescription: { type: String, required: true },
 
     category: {
       type: String,
@@ -53,10 +48,13 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    brand: {
-      type: String,
+    brand: { type: String, required: true },
+
+
+    // ✅ NEW VARIANT SYSTEM
+    variants: {
+      type: [variantSchema],
       required: true,
-      trim: true,
     },
 
     specifications: {
@@ -81,20 +79,13 @@ const productSchema = new mongoose.Schema(
       lowercase: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
-// ✅ Unique per dealer (IMPORTANT FIX)
+// Indexes
 productSchema.index(
   { name: 1, dealer: 1 },
   { unique: true, collation: { locale: "en", strength: 2 } },
 );
-
-// ✅ Performance indexes
-productSchema.index({ dealer: 1 });
-productSchema.index({ category: 1 });
-productSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Product", productSchema);
