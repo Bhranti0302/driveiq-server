@@ -1,21 +1,69 @@
 const mongoose = require("mongoose");
 
-// Order Item Schema
-const orderItemSchema = new mongoose.Schema({
+// ================== ORDER ITEM ================== //
+const orderItemSchema = new mongoose.Schema(
+  {
     product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
     },
-    name: String, // snapshot
-    price: Number, 
-    quantity: Number,
-    image:String,
-}, {
-    _id:false
-})
+    name: {
+      type: String,
+      required: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    color: {
+      type: String,
+      required: true,
+    },
+    image: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false },
+);
 
-// Main Order Schema
+// ================== SHIPPING ADDRESS ================== //
+const shippingAddressSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      required: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
+    address: {
+      type: String,
+      required: true,
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    postalCode: {
+      type: String,
+      required: true,
+    },
+    country: {
+      type: String,
+      required: true,
+    },
+  },
+  { _id: false },
+);
+
+// ================== MAIN ORDER ================== //
 const orderSchema = new mongoose.Schema(
   {
     user: {
@@ -26,6 +74,8 @@ const orderSchema = new mongoose.Schema(
 
     orderItems: [orderItemSchema],
 
+    shippingAddress: shippingAddressSchema, // ✅ Improved
+
     totalPrice: {
       type: Number,
       required: true,
@@ -34,7 +84,14 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
       default: "pending",
     },
 
@@ -47,11 +104,14 @@ const orderSchema = new mongoose.Schema(
       type: Date,
     },
 
-    shippingAddress: {
-      address: String,
-      city: String,
-      postalCode: String,
-      country: String,
+    paymentMethod: {
+      type: String,
+      enum: ["cod", "card", "upi"],
+      default: "cod",
+    },
+
+    deliveredAt: {
+      type: Date,
     },
   },
   {
@@ -59,4 +119,4 @@ const orderSchema = new mongoose.Schema(
   },
 );
 
-module.exports = mongoose.model("Order", orderSchema)
+module.exports = mongoose.model("Order", orderSchema);
