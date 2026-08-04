@@ -9,20 +9,35 @@ const createProduct = asyncHandler(async (req, res) => {
     name,
     description,
     longDescription,
-    price,
-    quantity,
     category,
     brand,
     specifications,
+    variants, // ✅ NEW
   } = req.body;
 
-  if (!name || !price || !quantity || !category || !brand) {
+  // ✅ Required fields
+  if (!name || !category || !brand || !variants) {
     return res.status(400).json({
       message: "Missing required fields",
     });
   }
 
-  // ✅ Prevent duplicate (per dealer)
+  // ✅ Validate variants
+  if (!Array.isArray(variants) || variants.length === 0) {
+    return res.status(400).json({
+      message: "At least one variant is required",
+    });
+  }
+
+  for (const v of variants) {
+    if (!v.color || v.price == null || v.stock == null) {
+      return res.status(400).json({
+        message: "Each variant must have color, price, and stock",
+      });
+    }
+  }
+
+  // ✅ Prevent duplicate per dealer
   const existing = await Product.findOne({
     name: name.trim().toLowerCase(),
     dealer: req.user._id,
@@ -35,41 +50,22 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   // ================= IMAGE HANDLING ================= //
-  let mainImage = { url: "", public_id: "" };
-  let images = [];
+  let parsedVariants = [...variants];
 
-  if (req.files) {
-    // main image
-    if (req.files.mainImage) {
-      mainImage = {
-        url: req.files.mainImage[0].path,
-        public_id: req.files.mainImage[0].filename,
-      };
-    }
-
-    // multiple images
-    if (req.files.images) {
-      images = req.files.images.map((file) => ({
-        url: file.path,
-        public_id: file.filename,
-      }));
-    }
-  }
+  // OPTIONAL: handle variant images (advanced)
+  // For now keep simple
 
   const product = await Product.create({
     name: name.trim().toLowerCase(),
     slug: slugify(name, { lower: true }),
     description,
     longDescription,
-    price,
-    quantity,
     category,
     brand,
     specifications,
+    variants: parsedVariants, // ✅ IMPORTANT
     dealer: req.user._id,
     status: "pending",
-    mainImage,
-    images,
   });
 
   res.status(201).json({
@@ -116,12 +112,17 @@ const rejectProduct = asyncHandler(async (req, res) => {
 const getAllProducts = asyncHandler(async (req, res) => {
   let filter = {};
 
-  if (req.user.role === "admin") {
+  if (req.user?.role === "admin") {
     filter = {};
-  } else if (req.user.role === "dealer") {
+  } else if (req.user?.role === "dealer") {
     filter = { dealer: req.user._id };
   } else {
     filter = { status: "active" };
+  }
+
+  // ✅ Filter by color (inside variants)
+  if (req.query.color) {
+    filter["variants.color"] = req.query.color;
   }
 
   const products = await Product.find(filter)
@@ -132,6 +133,22 @@ const getAllProducts = asyncHandler(async (req, res) => {
     count: products.length,
     products,
   });
+});
+
+// ================== GET SINGLE PRODUCT ================== //
+const getSingleProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id).populate(
+    "dealer",
+    "name email",
+  );
+
+  if (!product) {
+    return res.status(404).json({
+      message: "Product not found",
+    });
+  }
+
+  res.json(product);
 });
 
 // ================== UPDATE PRODUCT ================== //
@@ -150,43 +167,32 @@ const updateProduct = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: "Unauthorized" });
   }
 
-  // ================= DELETE OLD IMAGES ================= //
-  if (req.files?.mainImage && product.mainImage?.public_id) {
-    await cloudinary.uploader.destroy(product.mainImage.public_id);
-  }
-
-  if (req.files?.images && product.images.length > 0) {
-    for (const img of product.images) {
-      if (img.public_id) {
-        await cloudinary.uploader.destroy(img.public_id);
-      }
-    }
-  }
-
-  // ================= UPDATE FIELDS ================= //
+  // ================= UPDATE BASIC FIELDS ================= //
   product.name = req.body.name || product.name;
   product.slug = slugify(product.name, { lower: true });
   product.description = req.body.description || product.description;
   product.longDescription = req.body.longDescription || product.longDescription;
-  product.price = req.body.price || product.price;
-  product.quantity = req.body.quantity || product.quantity;
   product.category = req.body.category || product.category;
   product.brand = req.body.brand || product.brand;
   product.specifications = req.body.specifications || product.specifications;
 
-  // ================= UPDATE IMAGES ================= //
-  if (req.files?.mainImage) {
-    product.mainImage = {
-      url: req.files.mainImage[0].path,
-      public_id: req.files.mainImage[0].filename,
-    };
-  }
+  // ================= UPDATE VARIANTS ================= //
+  if (req.body.variants) {
+    if (!Array.isArray(req.body.variants) || req.body.variants.length === 0) {
+      return res.status(400).json({
+        message: "Variants must be a non-empty array",
+      });
+    }
 
-  if (req.files?.images) {
-    product.images = req.files.images.map((file) => ({
-      url: file.path,
-      public_id: file.filename,
-    }));
+    for (const v of req.body.variants) {
+      if (!v.color || v.price == null || v.stock == null) {
+        return res.status(400).json({
+          message: "Each variant must have color, price, and stock",
+        });
+      }
+    }
+
+    product.variants = req.body.variants;
   }
 
   // 🔥 Reset status after update
@@ -216,17 +222,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: "Unauthorized" });
   }
 
-  // ================= DELETE IMAGES ================= //
-  if (product.mainImage?.public_id) {
-    await cloudinary.uploader.destroy(product.mainImage.public_id);
-  }
-
-  for (const img of product.images) {
-    if (img.public_id) {
-      await cloudinary.uploader.destroy(img.public_id);
-    }
-  }
-
   await product.deleteOne();
 
   res.json({
@@ -239,6 +234,7 @@ module.exports = {
   approveProduct,
   rejectProduct,
   getAllProducts,
+  getSingleProduct,
   updateProduct,
   deleteProduct,
 };
