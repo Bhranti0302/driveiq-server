@@ -9,14 +9,18 @@ const cartItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    quantity: { // User's selected quantity
+    quantity: {
       type: Number,
       required: true,
       default: 1,
       min: 1,
     },
+    color: {
+      type: String,
+      required: true,
+    },
   },
-  { _id: false }, // optional: prevents extra _id for each item
+  { _id: false },
 );
 
 // 🔹 Main Cart Schema
