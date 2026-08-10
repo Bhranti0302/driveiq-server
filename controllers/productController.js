@@ -1,7 +1,5 @@
 const Product = require("../models/Product");
 const asyncHandler = require("../utils/asyncHandler");
-const cloudinary = require("../utils/cloudinary");
-const slugify = require("slugify");
 
 // ================== CREATE PRODUCT ================== //
 const createProduct = asyncHandler(async (req, res) => {
@@ -12,32 +10,18 @@ const createProduct = asyncHandler(async (req, res) => {
     category,
     brand,
     specifications,
-    variants, // ✅ NEW
+    price,
+    quantity,
   } = req.body;
 
-  // ✅ Required fields
-  if (!name || !category || !brand || !variants) {
+  // ✅ Validation
+  if (!name || !description || !longDescription || !category || !brand) {
     return res.status(400).json({
-      message: "Missing required fields",
+      message: "All required fields must be provided",
     });
   }
 
-  // ✅ Validate variants
-  if (!Array.isArray(variants) || variants.length === 0) {
-    return res.status(400).json({
-      message: "At least one variant is required",
-    });
-  }
-
-  for (const v of variants) {
-    if (!v.color || v.price == null || v.stock == null) {
-      return res.status(400).json({
-        message: "Each variant must have color, price, and stock",
-      });
-    }
-  }
-
-  // ✅ Prevent duplicate per dealer
+  // ✅ Duplicate check (same dealer)
   const existing = await Product.findOne({
     name: name.trim().toLowerCase(),
     dealer: req.user._id,
@@ -50,26 +34,52 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 
   // ================= IMAGE HANDLING ================= //
-  let parsedVariants = [...variants];
+  let mainImage = {};
+  let images = [];
 
-  // OPTIONAL: handle variant images (advanced)
-  // For now keep simple
+  if (req.files) {
+    // ✅ main image
+    if (req.files.mainImage) {
+      const file = req.files.mainImage[0];
 
+      mainImage = {
+        url: file.path,
+        public_id: file.filename,
+      };
+    }
+
+    // ✅ multiple images
+    if (req.files.images) {
+      images = req.files.images.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      }));
+    }
+  }
+
+  // ================= CREATE ================= //
   const product = await Product.create({
     name: name.trim().toLowerCase(),
-    slug: slugify(name, { lower: true }),
     description,
     longDescription,
     category,
     brand,
-    specifications,
-    variants: parsedVariants, // ✅ IMPORTANT
+    specifications:
+      typeof specifications === "string"
+        ? JSON.parse(specifications)
+        : specifications,
+
+    price: Number(price), 
+    quantity: Number(quantity), 
+
     dealer: req.user._id,
     status: "pending",
+    mainImage,
+    images,
   });
 
   res.status(201).json({
-    message: "Product created & sent for approval",
+    message: "Product created successfully",
     product,
   });
 });
@@ -80,12 +90,6 @@ const approveProduct = asyncHandler(async (req, res) => {
 
   if (!product) {
     return res.status(404).json({ message: "Product not found" });
-  }
-
-  if (product.status === "active") {
-    return res.status(400).json({
-      message: "Product already approved",
-    });
   }
 
   product.status = "active";
@@ -118,11 +122,6 @@ const getAllProducts = asyncHandler(async (req, res) => {
     filter = { dealer: req.user._id };
   } else {
     filter = { status: "active" };
-  }
-
-  // ✅ Filter by color (inside variants)
-  if (req.query.color) {
-    filter["variants.color"] = req.query.color;
   }
 
   const products = await Product.find(filter)
@@ -167,35 +166,37 @@ const updateProduct = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: "Unauthorized" });
   }
 
-  // ================= UPDATE BASIC FIELDS ================= //
-  product.name = req.body.name || product.name;
-  product.slug = slugify(product.name, { lower: true });
+  // ================= BASIC UPDATE ================= //
+  product.name = req.body.name
+    ? req.body.name.trim().toLowerCase()
+    : product.name;
+
   product.description = req.body.description || product.description;
   product.longDescription = req.body.longDescription || product.longDescription;
   product.category = req.body.category || product.category;
   product.brand = req.body.brand || product.brand;
   product.specifications = req.body.specifications || product.specifications;
 
-  // ================= UPDATE VARIANTS ================= //
-  if (req.body.variants) {
-    if (!Array.isArray(req.body.variants) || req.body.variants.length === 0) {
-      return res.status(400).json({
-        message: "Variants must be a non-empty array",
-      });
-    }
+  // ================= IMAGE UPDATE ================= //
+  if (req.files) {
+    req.files.forEach((file) => {
+      if (file.fieldname === "mainImage") {
+        product.mainImage = {
+          url: file.path,
+          public_id: file.filename,
+        };
+      }
 
-    for (const v of req.body.variants) {
-      if (!v.color || v.price == null || v.stock == null) {
-        return res.status(400).json({
-          message: "Each variant must have color, price, and stock",
+      if (file.fieldname === "images") {
+        product.images.push({
+          url: file.path,
+          public_id: file.filename,
         });
       }
-    }
-
-    product.variants = req.body.variants;
+    });
   }
 
-  // 🔥 Reset status after update
+  // ✅ Send for re-approval after update
   product.status = "pending";
 
   const updatedProduct = await product.save();
@@ -229,6 +230,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
   });
 });
 
+// ================== EXPORT ================== //
 module.exports = {
   createProduct,
   approveProduct,
