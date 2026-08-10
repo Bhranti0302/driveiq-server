@@ -8,22 +8,22 @@ const orderItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
+
     name: {
       type: String,
       required: true,
     },
+
     price: {
       type: Number,
       required: true,
     },
+
     quantity: {
       type: Number,
       required: true,
     },
-    color: {
-      type: String,
-      required: true,
-    },
+
     image: {
       type: String,
       default: "",
@@ -74,7 +74,7 @@ const orderSchema = new mongoose.Schema(
 
     orderItems: [orderItemSchema],
 
-    shippingAddress: shippingAddressSchema, // ✅ Improved
+    shippingAddress: shippingAddressSchema,
 
     totalPrice: {
       type: Number,
