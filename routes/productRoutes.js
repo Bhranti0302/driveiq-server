@@ -6,6 +6,7 @@ const { restrictTo } = require("../middlewares/roleMiddleware");
 const {
   createProduct,
   getAllProducts,
+  getSingleProduct,
   approveProduct,
   rejectProduct,
   updateProduct,
@@ -16,38 +17,43 @@ const { uploadProductImages } = require("../middlewares/upload");
 
 const router = express.Router();
 
-// ================= CREATE PRODUCT ================= //
-router.post(
-  "/",
-  protect,
-  restrictTo("dealer"),
-  uploadProductImages.fields([
-    { name: "mainImage", maxCount: 1 },
-    { name: "images", maxCount: 5 },
-  ]),
-  createProduct,
-);
+// ================= IMAGE CONFIG ================= //
+const uploadFields = uploadProductImages.fields([
+  { name: "mainImage", maxCount: 1 },
+  { name: "images", maxCount: 5 },
+]);
 
-// ================= GET PRODUCTS ================= //
+// ================= PUBLIC / USER ================= //
+
+// 👉 Get all products (admin/dealer/user handled inside controller)
 router.get("/", protect, getAllProducts);
 
-// ================= ADMIN ACTIONS ================= //
-router.put("/:id/approve", protect, restrictTo("admin"), approveProduct);
-router.put("/:id/reject", protect, restrictTo("admin"), rejectProduct);
+// 👉 Get single product
+router.get("/:id", protect, getSingleProduct);
 
-// ================= UPDATE PRODUCT ================= //
+// ================= DEALER ================= //
+
+// 👉 Create product
+router.post("/", protect, restrictTo("dealer"), uploadFields, createProduct);
+
+// 👉 Update product (dealer can update own, admin can update all)
 router.put(
   "/:id",
   protect,
   restrictTo("admin", "dealer"),
-  uploadProductImages.fields([
-    { name: "mainImage", maxCount: 1 },
-    { name: "images", maxCount: 5 },
-  ]),
+  uploadFields,
   updateProduct,
 );
 
-// ================= DELETE PRODUCT ================= //
+// 👉 Delete product
 router.delete("/:id", protect, restrictTo("admin", "dealer"), deleteProduct);
+
+// ================= ADMIN ================= //
+
+// 👉 Approve product
+router.patch("/:id/approve", protect, restrictTo("admin"), approveProduct);
+
+// 👉 Reject product
+router.patch("/:id/reject", protect, restrictTo("admin"), rejectProduct);
 
 module.exports = router;
