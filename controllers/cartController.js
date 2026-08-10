@@ -9,11 +9,11 @@ const addToCart = asyncHandler(async (req, res) => {
     throw new Error("Only users can add to cart");
   }
 
-  const { productId, quantity, color } = req.body;
+  const { productId, quantity } = req.body;
 
-  if (!productId || !quantity || !color) {
+  if (!productId || !quantity) {
     res.status(400);
-    throw new Error("Product, quantity and color are required");
+    throw new Error("Product and quantity are required");
   }
 
   const product = await Product.findById(productId);
@@ -23,17 +23,8 @@ const addToCart = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // ✅ Find variant
-  const variant = product.variants.find(
-    (v) => v.color.toLowerCase() === color.toLowerCase(),
-  );
-
-  if (!variant) {
-    res.status(400);
-    throw new Error("Selected color not available");
-  }
-
-  if (variant.stock < quantity) {
+  // 🔥 Check stock from product.quantity
+  if (product.quantity < quantity) {
     res.status(400);
     throw new Error("Not enough stock available");
   }
@@ -47,18 +38,15 @@ const addToCart = asyncHandler(async (req, res) => {
     });
   }
 
-  // ✅ Check product + color
+  // 🔥 Check existing item (ONLY product)
   const itemIndex = cart.items.findIndex(
-    (item) =>
-      item.product.toString() === productId &&
-      item.color.toLowerCase() === color.toLowerCase(),
+    (item) => item.product.toString() === productId,
   );
 
   if (itemIndex > -1) {
-    // 🔥 Prevent exceeding stock
     const newQty = cart.items[itemIndex].quantity + quantity;
 
-    if (newQty > variant.stock) {
+    if (newQty > product.quantity) {
       res.status(400);
       throw new Error("Exceeds available stock");
     }
@@ -68,7 +56,6 @@ const addToCart = asyncHandler(async (req, res) => {
     cart.items.push({
       product: productId,
       quantity,
-      color,
     });
   }
 
@@ -90,40 +77,34 @@ const getUserCart = asyncHandler(async (req, res) => {
 
   const cart = await Cart.findOne({ user: req.user._id }).populate({
     path: "items.product",
-    select: "name mainImage variants",
+    select: "name price mainImage quantity",
   });
 
   if (!cart) {
     return res.status(200).json({
       success: true,
-      cart: { items: [] },
+      cart: { items: [], cartTotal: 0 },
     });
   }
 
-  // ✅ Attach variant details dynamically
-  const items = cart.items.map((item) => {
-    const product = item.product;
-
-    const variant = product.variants.find(
-      (v) => v.color.toLowerCase() === item.color.toLowerCase(),
-    );
-
-    return {
-      _id: item._id,
-      product: product._id,
-      name: product.name,
-      color: item.color,
-      quantity: item.quantity,
-      price: variant?.price || 0,
-      stock: variant?.stock || 0,
-      image: product.mainImage?.url || "",
-    };
-  });
+  // 🔥 Simplified response
+  const items = cart.items.map((item) => ({
+    product: item.product._id,
+    name: item.product.name,
+    quantity: item.quantity,
+    price: item.product.price,
+    stock: item.product.quantity,
+    image: item.product.mainImage?.url || "",
+    total: item.product.price * item.quantity,
+  }));
 
   res.status(200).json({
     success: true,
     count: items.length,
-    cart: { items },
+    cart: {
+      items,
+      cartTotal: cart.cartTotal,
+    },
   });
 });
 
@@ -135,11 +116,11 @@ const updateCartItem = asyncHandler(async (req, res) => {
   }
 
   const { productId } = req.params;
-  const { quantity, color } = req.body;
+  const { quantity } = req.body;
 
-  if (quantity === undefined || !color) {
+  if (quantity === undefined) {
     res.status(400);
-    throw new Error("Quantity and color are required");
+    throw new Error("Quantity is required");
   }
 
   const cart = await Cart.findOne({ user: req.user._id });
@@ -150,9 +131,7 @@ const updateCartItem = asyncHandler(async (req, res) => {
   }
 
   const itemIndex = cart.items.findIndex(
-    (item) =>
-      item.product.toString() === productId &&
-      item.color.toLowerCase() === color.toLowerCase(),
+    (item) => item.product.toString() === productId,
   );
 
   if (itemIndex === -1) {
@@ -162,16 +141,12 @@ const updateCartItem = asyncHandler(async (req, res) => {
 
   const product = await Product.findById(productId);
 
-  const variant = product.variants.find(
-    (v) => v.color.toLowerCase() === color.toLowerCase(),
-  );
-
-  if (!variant) {
-    res.status(400);
-    throw new Error("Variant not found");
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
   }
 
-  if (quantity > variant.stock) {
+  if (quantity > product.quantity) {
     res.status(400);
     throw new Error("Not enough stock available");
   }
@@ -199,12 +174,6 @@ const removeCartItem = asyncHandler(async (req, res) => {
   }
 
   const { productId } = req.params;
-  const { color } = req.body;
-
-  if (!color) {
-    res.status(400);
-    throw new Error("Color is required");
-  }
 
   const cart = await Cart.findOne({ user: req.user._id });
 
@@ -214,11 +183,7 @@ const removeCartItem = asyncHandler(async (req, res) => {
   }
 
   cart.items = cart.items.filter(
-    (item) =>
-      !(
-        item.product.toString() === productId &&
-        item.color.toLowerCase() === color.toLowerCase()
-      ),
+    (item) => item.product.toString() !== productId,
   );
 
   await cart.save();
