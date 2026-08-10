@@ -113,26 +113,102 @@ const rejectProduct = asyncHandler(async (req, res) => {
 });
 
 // ================== GET ALL PRODUCTS ================== //
+// const getAllProducts = asyncHandler(async (req, res) => {
+//   let filter = {};
+
+//   if (req.user?.role === "admin") {
+//     filter = {};
+//   } else if (req.user?.role === "dealer") {
+//     filter = { dealer: req.user._id };
+//   } else {
+//     filter = { status: "active" };
+//   }
+
+//   const products = await Product.find(filter)
+//     .populate("dealer", "name email")
+//     .sort({ createdAt: -1 });
+
+//   res.json({
+//     count: products.length,
+//     products,
+//   });
+// });
+
 const getAllProducts = asyncHandler(async (req, res) => {
+  const {
+    category,
+    brand,
+    minPrice,
+    maxPrice,
+    sort,
+    search, // 🔥 NEW
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  // 🔹 Filter Object
   let filter = {};
 
-  if (req.user?.role === "admin") {
-    filter = {};
-  } else if (req.user?.role === "dealer") {
-    filter = { dealer: req.user._id };
-  } else {
-    filter = { status: "active" };
+  // 🔍 Search Filter (name + brand)
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { brand: { $regex: search, $options: "i" } },
+    ];
   }
 
-  const products = await Product.find(filter)
-    .populate("dealer", "name email")
-    .sort({ createdAt: -1 });
+  // Category Filter
+  if (category) {
+    filter.category = category;
+  }
 
-  res.json({
+  // Brand Filter
+  if (brand) {
+    filter.brand = brand;
+  }
+
+  // Price Filter
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  // 🔹 Pagination
+  const currentPage = Number(page);
+  const perPage = Number(limit);
+  const skip = (currentPage - 1) * perPage;
+
+  // 🔹 Total Count
+  const totalProducts = await Product.countDocuments(filter);
+
+  // 🔹 Query Builder
+  let query = Product.find(filter);
+
+  // 🔹 Sorting
+  if (sort) {
+    query = query.sort(sort); // price / -price
+  } else {
+    query = query.sort("-createdAt");
+  }
+
+  // 🔹 Pagination Apply
+  query = query.skip(skip).limit(perPage);
+
+  // 🔹 Execute
+  const products = await query;
+
+  // 🔹 Response
+  res.status(200).json({
+    success: true,
+    totalProducts,
+    currentPage,
+    totalPages: Math.ceil(totalProducts / perPage),
     count: products.length,
-    products,
+    data: products,
   });
 });
+
 
 // ================== GET SINGLE PRODUCT ================== //
 const getSingleProduct = asyncHandler(async (req, res) => {
