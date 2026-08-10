@@ -1,46 +1,33 @@
 const mongoose = require("mongoose");
 
-const variantSchema = new mongoose.Schema(
+const productSchema = new mongoose.Schema(
   {
-    color: {
+    name: {
       type: String,
       required: true,
       trim: true,
+      lowercase: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    longDescription: {
+      type: String,
+      required: true,
     },
 
     price: {
       type: Number,
       required: true,
-      min: 0,
     },
 
-    stock: {
+    quantity: {
       type: Number,
-      required: true,
-      min: 0,
+      default: 1,
     },
-
-    mainImage: {
-      url: String,
-      public_id: String,
-    },
-
-    images: [
-      {
-        url: String,
-        public_id: String,
-      },
-    ],
-  },
-  { _id: false },
-);
-
-const productSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true, lowercase: true },
-
-    description: { type: String, required: true },
-    longDescription: { type: String, required: true },
 
     category: {
       type: String,
@@ -48,12 +35,8 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    brand: { type: String, required: true },
-
-
-    // ✅ NEW VARIANT SYSTEM
-    variants: {
-      type: [variantSchema],
+    brand: {
+      type: String,
       required: true,
     },
 
@@ -74,10 +57,17 @@ const productSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    slug: {
-      type: String,
-      lowercase: true,
+    mainImage: {
+      url: String,
+      public_id: String,
     },
+
+    images: [
+      {
+        url: String,
+        public_id: String,
+      },
+    ],
   },
   { timestamps: true },
 );
