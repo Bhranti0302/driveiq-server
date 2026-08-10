@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Product = require("./Product");
 
-// 🔹 Cart Item Schema (for each product in cart)
+// 🔹 Cart Item Schema
 const cartItemSchema = new mongoose.Schema(
   {
     product: {
@@ -14,10 +14,6 @@ const cartItemSchema = new mongoose.Schema(
       required: true,
       default: 1,
       min: 1,
-    },
-    color: {
-      type: String,
-      required: true,
     },
   },
   { _id: false },
@@ -32,6 +28,7 @@ const cartSchema = new mongoose.Schema(
       required: true,
       unique: true, // one cart per user
     },
+
     items: [cartItemSchema],
 
     cartTotal: {
@@ -42,6 +39,7 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// 🔹 Calculate total before saving
 cartSchema.pre("save", async function () {
   const productIds = this.items.map((item) => item.product);
 
