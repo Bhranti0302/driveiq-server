@@ -1,10 +1,10 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const morgan = require("morgan"); // ✅ fixed
-const logger = require("./middleware/logger");
-const errorLogger = require("./middleware/errorLogger"); // ✅ add
-const errorHandler = require("./middleware/errorHandler"); // ✅ add
+const morgan = require("morgan"); 
+const logger = require("./middlewares/logger");
+const errorLogger = require("./middlewares/errorLogger"); 
+const errorHandler = require("./middlewares/errorHandler"); 
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -37,7 +37,6 @@ app.use("/api/carts", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 
-// ❗ ERROR MIDDLEWARE (VERY IMPORTANT ORDER)
 app.use(errorLogger); // logs error
 app.use(errorHandler); // sends response
 
