@@ -1,37 +1,48 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 const cookieOptions = require("../utils/cookieOptions");
-const asyncHandler = require("./../utils/asyncHandler");
-const jwt = require("jsonwebtoken");
+const asyncHandler = require("../utils/asyncHandler");
 
 // ============ REGISTER USER ============ //
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, phone } = req.body || {};
 
-  // 1. Check user exists
-  const userExists = await User.findOne({ email });
+  // 1. Validate required fields
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      message: "Name, email and password are required",
+    });
+  }
+
+  // 2. Normalize email
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 3. Check if user already exists
+  const userExists = await User.findOne({
+    email: normalizedEmail,
+  });
 
   if (userExists) {
-    return res.status(400).json({
+    return res.status(409).json({
       message: "User already exists",
     });
   }
 
-  // 2. Create User
+  // 4. Create user
   const user = await User.create({
     name,
-    email,
+    email: normalizedEmail,
     password,
     phone,
   });
 
-  // 3. Generate token
+  // 5. Generate token
   const token = generateToken(user._id);
 
-  // 4. Send Cookies
+  // 6. Set authentication cookie
   res.cookie("token", token, cookieOptions);
 
-  // 5. Send Response
+  // 7. Send response
   res.status(201).json({
     message: "User registered successfully",
     user: {
@@ -46,10 +57,22 @@ const register = asyncHandler(async (req, res) => {
 
 // ============ LOGIN USER ============ //
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
-  // 1. Check if user exists
-  const user = await User.findOne({ email }).select("+password");
+  // 1. Validate input
+  if (!email || !password) {
+    return res.status(400).json({
+      message: "Email and password are required",
+    });
+  }
+
+  // 2. Normalize email
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 3. Find user and include password
+  const user = await User.findOne({
+    email: normalizedEmail,
+  }).select("+password");
 
   if (!user) {
     return res.status(401).json({
@@ -57,7 +80,7 @@ const login = asyncHandler(async (req, res) => {
     });
   }
 
-  // 2. Check if password is correct
+  // 4. Compare password
   const isMatch = await user.matchPassword(password);
 
   if (!isMatch) {
@@ -66,13 +89,13 @@ const login = asyncHandler(async (req, res) => {
     });
   }
 
-  // 3. Generate token
+  // 5. Generate token
   const token = generateToken(user._id);
 
-  // 4. Send Cookies
+  // 6. Set authentication cookie
   res.cookie("token", token, cookieOptions);
 
-  // 5. Send Response
+  // 7. Send response
   res.status(200).json({
     message: "User logged in successfully",
     user: {
@@ -87,25 +110,18 @@ const login = asyncHandler(async (req, res) => {
 
 // ============ LOGOUT USER ============ //
 const logout = asyncHandler(async (req, res) => {
-    // 1. Check if user is logged in
-    const token = req.cookies.token;
-  
-    if (!token) {
-        return res.status(401).json({
-            message: "Not logged in"
-        })
-    }
-    // 2. Clear cookie
-    res.clearCookie("token");
+  // Use the same cookie settings when clearing the cookie.
+  const { maxAge, expires, ...clearCookieOptions } = cookieOptions;
 
-    // 3. Send response
-    res.status(200).json({
-        message: "User logged out successfully"
-    })
-})
+  res.clearCookie("token", clearCookieOptions);
+
+  res.status(200).json({
+    message: "User logged out successfully",
+  });
+});
 
 module.exports = {
   register,
-    login,
-    logout
+  login,
+  logout,
 };
