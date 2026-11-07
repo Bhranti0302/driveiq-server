@@ -7,34 +7,34 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please add a name"],
       trim: true,
-      minlength: 3,
+      minlength: [3, "Name must be at least 3 characters"],
+      maxlength: [50, "Name cannot exceed 50 characters"],
     },
 
     email: {
       type: String,
       required: [true, "Please add an email"],
       unique: true,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please add a valid email",
-      ],
+      lowercase: true,
+      trim: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, "Please add a valid email"],
     },
 
     password: {
       type: String,
       required: [true, "Please add a password"],
-      minlength: 6,
+      minlength: [6, "Password must be at least 6 characters"],
       select: false,
       match: [
         /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{6,}$/,
-        "Password must contain at least one number and one uppercase and lowercase letter, and at least 6 or more characters",
+        "Password must contain at least one number, uppercase, lowercase and special character",
       ],
     },
 
     phone: {
       type: String,
       trim: true,
-      match: [/^[0-9]{10}$/, "Please add a valid phone number"],
+      match: [/^[0-9]{10}$/, "Please add a valid 10-digit phone number"],
     },
 
     role: {
@@ -42,19 +42,24 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin", "dealer"],
       default: "user",
     },
- 
+
     profileImage: {
-      url: String,
-      public_id: String
-    }
-
+      url: {
+        type: String,
+        default: "",
+      },
+      public_id: {
+        type: String,
+        default: "",
+      },
+    },
   },
-
   {
     timestamps: true,
   },
 );
 
+// Hash password before saving
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
 
@@ -62,8 +67,9 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
+// Compare password during login
 userSchema.methods.matchPassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  return bcrypt.compare(password, this.password);
 };
 
 module.exports = mongoose.model("User", userSchema);
