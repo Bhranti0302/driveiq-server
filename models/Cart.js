@@ -1,68 +1,90 @@
 const mongoose = require("mongoose");
 const Product = require("./Product");
 
-// 🔹 Cart Item Schema
+// Cart Item Schema
 const cartItemSchema = new mongoose.Schema(
   {
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
+      required: [true, "Product is required"],
     },
+
     quantity: {
       type: Number,
       required: true,
       default: 1,
-      min: 1,
+      min: [1, "Quantity must be at least 1"],
+      validate: {
+        validator: Number.isInteger,
+        message: "Quantity must be a whole number",
+      },
     },
   },
   { _id: false },
 );
 
-// 🔹 Main Cart Schema
+// Main Cart Schema
 const cartSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true, // one cart per user
+      unique: true,
     },
 
-    items: [cartItemSchema],
+    items: {
+      type: [cartItemSchema],
+      default: [],
+    },
 
     cartTotal: {
       type: Number,
       default: 0,
+      min: [0, "Cart total cannot be negative"],
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-// 🔹 Calculate total before saving
+// Calculate cart total before saving
 cartSchema.pre("save", async function () {
+  if (this.items.length === 0) {
+    this.cartTotal = 0;
+    return;
+  }
+
   const productIds = this.items.map((item) => item.product);
 
   const products = await Product.find({
     _id: { $in: productIds },
-  }).select("price");
+    status: "active",
+  }).select("price quantity");
 
-  const productMap = {};
-
-  products.forEach((p) => {
-    productMap[p._id.toString()] = p.price;
-  });
+  const productMap = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
 
   let total = 0;
 
-  this.items.forEach((item) => {
-    const price = productMap[item.product.toString()];
-    if (!price) return;
+  for (const item of this.items) {
+    const product = productMap.get(item.product.toString());
 
-    total += price * item.quantity;
-  });
+    if (!product) {
+      throw new Error("One or more products are unavailable");
+    }
 
-  this.cartTotal = total;
+    if (item.quantity > product.quantity) {
+      throw new Error(`Only ${product.quantity} units are available`);
+    }
+
+    total += product.price * item.quantity;
+  }
+
+  this.cartTotal = Math.round((total + Number.EPSILON) * 100) / 100;
 });
 
 module.exports = mongoose.model("Cart", cartSchema);
