@@ -1,4 +1,15 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
+
+# Admin seed file
 seedAdmin.js
+
+# Data folder
 data/
+
+# Test controllers
+controllers/testController.js
+routes/testRoutes.js
