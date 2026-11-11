@@ -1,9 +1,9 @@
 const sendEmail = require("./sendEmail");
 
-const sendVerificationEmail = async (EmailVerification, options, name = "user"){
-    const subject = "Verify your Email - DriveIQ";
+const sendVerificationEmail = async (email, otp, name = "User") => {
+  const subject = "Verify Your Email - DriveIQ";
 
-      const text = `
+  const text = `
 Hello ${name},
 
 Thank you for registering with DriveIQ.
@@ -16,8 +16,8 @@ If you did not create this account, please ignore this email.
 
 DriveIQ Team
   `;
-    
-    const html = `
+
+  const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
       <h2 style="color: #2563eb;">Welcome to DriveIQ!</h2>
 
@@ -40,13 +40,13 @@ DriveIQ Team
       <p style="color: #777;">DriveIQ Team</p>
     </div>
   `;
-    
-    return await sendEmail({
-        to: EmailVerification,
-        subject,
-        text,
-        html,
-    })
-}
 
-module.exports = sendVerificationEmail
+  return await sendEmail({
+    to: email,
+    subject,
+    text,
+    html,
+  });
+};
+
+module.exports = sendVerificationEmail;
